@@ -42,7 +42,10 @@ export default SignUpPassword = (props) => {
       alert(translate('fillOutAllFields'));
     } else if (password.length < 6) {
       alert(translate('passwordTooShort'));
-    } else {
+    } else if(warningMessage == 'Poor'){
+      alert(translate('passwordTooWeak'));
+    }else
+    {
       // props.setUserInfo({password});
       // AsyncStorage.setItem('pass', password);
       // AsyncStorage.setItem('repeat', repeat);
@@ -58,6 +61,64 @@ export default SignUpPassword = (props) => {
       });
     }
   };
+  function arrayFile(file)
+  {
+    const reader = new FileReader()
+    reader.onload = async (e) =>
+    {
+      const text = (e.target.result);
+      return text.split("");
+    }
+  }
+  function contain(data, target)
+  {
+    var res = false;
+    for(var i = 0; i < data.length && !res; i++)
+    {
+      res = target == data[i];
+    }
+    return res;
+  }
+  function amountOfTypes(input)
+  {
+    var letter = 0;
+    var number = 0;
+    var symbol = 0;
+    var capital = 0;
+    for(var i = 0; i < input.length; i++)
+    {
+      if(input.charCodeAt(i) > 64 && input.charCodeAt(i) < 132 && capital == 0)
+      {
+        capital = 1;
+      }else if(input.charCodeAt(i) > 47 && input.charCodeAt(i) < 58 && number == 0)
+      {
+        number = 1;
+      }else if(input.charCodeAt(i) > 96 && input.charCodeAt(i) < 123 && letter == 0)
+      {
+        letter = 1;
+      }else if(symbol == 0)
+      {
+        symbol = 1;
+      }
+    }
+    return letter + number + symbol + capital;
+  }
+  function passwordCheck(input)
+  {
+    if(len(input) >= 5 || contain(arrayFile("./10-million-password-list-top-1000.txt"), input) || amountOfTypes(input) > 3)//High
+    {
+      setWarningMessage('High');
+      setWarningStyle('#298000');
+    }else if(len(input) >= 4 || contain(arrayFile("./10-million-password-list-top-1000.txt"), input) || amountOfTypes(input) > 2)//Med
+    {
+      setWarningMessage('Med');
+      setWarningStyle('#0052A1');
+    }else//Low
+    {
+      setWarningMessage('Poor');
+      setWarningStyle('#DF2172');
+    }
+  }
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

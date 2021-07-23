@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
+import firebase from 'firebase';
 import {
   Animated,
   Image,
@@ -15,7 +16,7 @@ import {
   AsyncStorage,
   NativeModules,
 } from 'react-native';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, Component} from 'react';
 import appStyles from './AppStyles';
 import Button from './Button';
 // import TextInput from "./TextInput";
@@ -30,7 +31,36 @@ import {
   storeObjectInDatabase,
   getUserInfo,
 } from '../Firebase';
+
+
+import * as Notifications from 'expo-notifications';
+import * as Permissions from 'expo-permissions';
+  export const getDevicePushToken = () => {
+    return Permissions.getAsync(Permissions.NOTIFICATIONS)
+        .then((response) =>
+            response.status === 'granted'
+                ? response
+                : Permissions.askAsync(Permissions.NOTIFICATIONS)
+        )
+        .then((response) => {
+            if (response.status !== 'granted') {
+                return Promise.reject(new Error('Push notifications permission was rejected'));
+            }
+
+            return Notifications.getDevicePushTokenAsync();
+        })
+        .then(token => {
+            console.log('Token:'+token);
+            firebase.database().ref('...').update({ pushToken: token.data });
+        })
+        .catch((error) => {
+            console.log('Error while registering device push token', error);
+        });
+};
+
+
 // import ForgotPasswordPage from './ForgotPasswordPage';
+
 
 export default LogIn = (props) => {
   const [email, setEmail] = useState(null);
@@ -70,11 +100,11 @@ export default LogIn = (props) => {
   }, []);
 
   let getCookies = async () => {
-    let email = await getCookie('email');
-    let password = await getCookie('password');
+    const email = await getCookie('email');
+    const password = await getCookie('password');
     if (email && password) loginWithEmailPassword(email, password);
-    let fullName = await getCookie('fullName');
-    let uid = await getCookie('uid');
+    const fullName = await getCookie('fullName');
+    const uid = await getCookie('uid');
 
     setAppState({
       email,
@@ -84,7 +114,7 @@ export default LogIn = (props) => {
     });
   };
 
-  let saveCookie = async (key, value) => {
+  const saveCookie = async (key, value) => {
     try {
       await AsyncStorage.setItem(key, value).then();
     } catch (e) {
@@ -119,8 +149,8 @@ export default LogIn = (props) => {
   };
 
   let loginWithUid = (uid) => {
-    let today = new Date();
-    let date = `${today.getFullYear()}-${
+    const today = new Date();
+    const date = `${today.getFullYear()}-${
       today.getMonth() + 1
     }-${today.getDate()}@${today.getHours()}:${today.getMinutes()}`;
     storeObjectInDatabase(uid, {
@@ -133,7 +163,18 @@ export default LogIn = (props) => {
     });
     props.navigation.navigate('Homepage');
   };
-
+/**
+  loaded = () =>
+{
+  const messaging = firebase.messaging()
+  messaging.requestPermission().then(()=>{
+    return messaging.getToken()
+  }).then(token=>{
+    console.log('Token : ',token)
+  }).catch(()=>{
+  })
+}
+**/
   return (
     <>
       <Animated.View
@@ -184,6 +225,7 @@ export default LogIn = (props) => {
                 style={appStyles.button}
                 onPress={() => {
                   loginWithEmailPassword(email, password);
+                  getDevicePushToken();
                 }}
                 text={translate('signInButton')}
               />
@@ -204,6 +246,7 @@ export default LogIn = (props) => {
           <SwipeUp
             text={translate('swipeUpToSignUp')}
             onSwipeUp={() => props.navigation.navigate('LetsGetStarted')}
+            onPress={() => props.navigation.navigate('LetsGetStarted')}
           />
         </View>
       </Animated.View>
